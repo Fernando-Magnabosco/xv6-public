@@ -1,6 +1,31 @@
-EXECUTE O ARQUIVO CODE
+Arquivo de teste: code.c
 
-EXECUTE O ARQUIVO CODE
+    "code.c" recebe como argumento em argv[1] uma quantidade inicial de bilhetes. 
+    A partir disso, o programa inicia P (declarado no próprio code.c) processos
+    que executam o algoritmo bubble sort N vezes, para um vetor de SIZE elementos
+    ordenados inversamente. (N e SIZE definidos em bubble.c).
 
-EXECUTE O ARQUIVO CODE
+A quantidade de bilhetes de cada processo é calculada desta forma:
 
+Se code recebeu argumento, então:
+    Para o processo i,  qtdBilhetes(i) = argv[1] + i * 10, se argv[1] + i * 10 <= MAX_TICKETS; 
+                        qtdBilhetes(i) = MAX_TICKETS, se argv[1] + i * 10 > MAX_TICKETS.
+
+Senão:
+    Para o processo i,  qtdBilhetes(i) = 10 + i * 10, se 10 + i * 10 <= MAX_TICKETS; 
+                        qtdBilhetes(i) = MAX_TICKETS, se 10 + i * 10 > MAX_TICKETS;
+
+Sendo i o iterador do laço que inicia os processos,
+e MAX_TICKETS a macro definida em proc.h.
+
+Resultado esperado:
+
+    Como a quantidade de bilhetes de um processo depende linearmente
+    do valor de i, os processos que forem iniciados por último terão
+    a maior probabilidade de serem executados, e portanto, espera-se
+    que para uma mesma computação, terminem primeiro. No entanto, ao
+    considerar o fator probabilístico, constata-se que é possível, 
+    mesmo que improvável, que os primeiros processos terminem a sua 
+    execução antes dos últimos, e por isso, recomenda-se que code.c 
+    seja executado diversas vezes, para que haja uma amostragem sufi-
+    ciente de resultados.
