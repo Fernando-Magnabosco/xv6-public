@@ -6,26 +6,45 @@ Arquivo de teste: code.c
     ordenados inversamente. (N e SIZE definidos em bubble.c).
 
 A quantidade de bilhetes de cada processo é calculada desta forma:
+O tamanho do passo é calculado desta forma: 
 
 Se code recebeu argumento, então:
-    Para o processo i,  qtdBilhetes(i) = argv[1] + i * 10, se argv[1] + i * 10 <= MAX_TICKETS; 
-                        qtdBilhetes(i) = MAX_TICKETS, se argv[1] + i * 10 > MAX_TICKETS.
+    Para o processo i,  passo(i) = DIVIDEND / (argv[1] + i * 10), se argv[1] + i * 10 <= MAX_TICKETS; 
+                        passo(i) = DIVIDEND / MAX_TICKETS, se argv[1] + i * 10 > MAX_TICKETS.
 
 Senão:
-    Para o processo i,  qtdBilhetes(i) = 10 + i * 10, se 10 + i * 10 <= MAX_TICKETS; 
-                        qtdBilhetes(i) = MAX_TICKETS, se 10 + i * 10 > MAX_TICKETS;
+    Para o processo i,  passo(i) = DIVIDEND / (10 + i * 10), se 10 + i * 10 <= MAX_TICKETS; 
+                        passo(i) = DIVIDEND / MAX_TICKETS, se 10 + i * 10 > MAX_TICKETS;
 
 Sendo i o iterador do laço que inicia os processos,
-e MAX_TICKETS a macro definida em proc.h.
+            MAX_TICKETS a macro definida em proc.h,
+                 que limita o máximo de bilhetes e
+               DIVIDEND, também definida em proc.h, 
+              pode possuir qualquer valor maior que
+                                        MAX_TICKETS
+
+
+
+Stride Scheduler:
+
+    O algoritmo de escalonamento stride tem como diferencial a capa-
+    cidade de determinizar o escalonamento. Seu funcionamento é bas-
+    tante semelhante com o escalonamento por loteria, mas em vez de
+    sortear um bilhete, o stride calcula o tamanho do passo de 
+    determinado processo, definido por (DIVIDEND / noTickets). A par-
+    tir disso, o escalonador escolhe o processo com o menor passo
+    (todos começam com zero) e após a execução soma o tamanho do 
+    passo ao passo do processo.
+
+
+
+
 
 Resultado esperado:
 
-    Como a quantidade de bilhetes de um processo depende linearmente
-    do valor de i, os processos que forem iniciados por último terão
-    a maior probabilidade de serem executados, e portanto, espera-se
-    que para uma mesma computação, terminem primeiro. No entanto, ao
-    considerar o fator probabilístico, constata-se que é possível, 
-    mesmo que improvável, que os primeiros processos terminem a sua 
-    execução antes dos últimos, e por isso, recomenda-se que code.c 
-    seja executado diversas vezes, para que haja uma amostragem sufi-
-    ciente de resultados.
+
+    Semelhante ao escalonamento por loteria, espera-se que os proces-
+    sos que forem iniciados por último terminem primeiro. No entan-
+    to, desta vez, a ordem de execução é determinística.
+
+

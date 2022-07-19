@@ -19,13 +19,14 @@ int main(int argc, char *argv[])
     if (argc > 1)
         noTickets = atoi(argv[1]);
 
+
     for (int i = 0; i < P; i++)
     {
         int pid = fork(noTickets);
 
-        if (pid == 0)
+        if (pid == 0){
             exec("bubble", argv);
-
+        }
         else if (i == P - 1)
             biggestPID = pid;
 
@@ -34,7 +35,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < P; i++)
         wait();
 
-    printf(1, "BIGGEST PID IS %d\n", biggestPID);
+    printf(1, "\nBIGGEST PID IS %d\n", biggestPID);
 
     exit();
 }

@@ -1,3 +1,4 @@
+#define DIVIDEND 10000
 #define MAX_TICKETS 100
 
 // Per-CPU state
@@ -62,7 +63,8 @@ struct proc
   struct file *ofile[NOFILE]; // Open files
   struct inode *cwd;          // Current directory
   char name[16];              // Process name (debugging)
-  unsigned int noTickets;     // Number of tickets to posterior scheduler raffle
+  unsigned int stepSize;      // Step size
+  unsigned int step;          // Atual step
 };
 
 // Process memory is laid out contiguously, low addresses first:

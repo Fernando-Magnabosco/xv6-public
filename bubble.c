@@ -51,14 +51,14 @@ void bubble(int *array)
 
 int main(int argc, char const *argv[])
 {
-    int mypid = getpid();
-
+    
     for (int i = 0; i < N; i++)
     {
         int array[SIZE];
         initializeArray(array);
         bubble(array);
     }
-    printf(1, "BUBBLE WITH PID %d FINISHED\n", mypid);
+    
+    printf(1, "BUBBLE WITH %d TICKETS FINISHED\n", atoi(argv[1]));
     exit();
 }

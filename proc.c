@@ -1,3 +1,5 @@
+#define NULL ((void*)0)
+
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -11,7 +13,7 @@ struct
 {
   struct spinlock lock;
   struct proc proc[NPROC];
-  int acc[NPROC];
+  
 } ptable;
 
 static struct proc *initproc;
@@ -151,7 +153,9 @@ void userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
-  p->noTickets = MAX_TICKETS / 2;
+
+  p->stepSize = DIVIDEND / MAX_TICKETS;
+  p->step = 0;
 
   release(&ptable.lock);
 }
@@ -179,63 +183,8 @@ int growproc(int n)
   return 0;
 }
 
-// Recalculate the accumulated value of tickets for all processes after remotion.
-void updateaccremove(int i)
-{
 
-  int lastRunnable = i;
-  int j;
 
-  acquire(&ptable.lock);
-
-  for (j = 0; j < i; j++)
-  {
-    if (ptable.proc[j].state == RUNNABLE)
-      lastRunnable = j;
-  }
-
-  int aux = ptable.proc[i].noTickets;
-  ptable.proc[i].noTickets = 0;
-
-  for (++j; j < NPROC; j++)
-  {
-    if (ptable.proc[j].state == RUNNABLE)
-    {
-      ptable.acc[j] = ptable.acc[lastRunnable] + ptable.proc[j].noTickets;
-      lastRunnable = j;
-    }
-  }
-
-  ptable.proc[i].noTickets = aux;
-
-  release(&ptable.lock);
-}
-
-void updateaccinsert(int i)
-{
-
-  int lastRunnable = i;
-  int j;
-  for (j = 0; j < i; j++)
-  {
-    if (ptable.proc[j].state == RUNNABLE)
-      lastRunnable = j;
-  }
-
-  if (lastRunnable != i)
-    ptable.acc[i] = ptable.acc[lastRunnable] + ptable.proc[i].noTickets;
-  else
-    ptable.acc[i] = ptable.proc[i].noTickets;
-
-  for (++j; j < NPROC; j++)
-  {
-    if (ptable.proc[j].state == RUNNABLE)
-    {
-      ptable.acc[j] = ptable.acc[lastRunnable] + ptable.proc[j].noTickets;
-      lastRunnable = j;
-    }
-  }
-}
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -267,8 +216,8 @@ int fork(int noTickets)
     noTickets = MAX_TICKETS;
   if (noTickets < 0)
     noTickets = 0;
-  np->noTickets = noTickets; // Process receives its tickets;
-
+  np->stepSize = DIVIDEND / noTickets; // Process receives its tickets;
+  np->step = 0;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -386,36 +335,6 @@ int wait(void)
   }
 }
 
-int rand_r(int seed)
-{
-
-  unsigned int next = seed;
-  int result;
-
-  next *= 1103515245;
-  next += 12345;
-  result = (unsigned int)(next / 65536) % 2048;
-
-  next *= 1103515245;
-  next += 12345;
-  result <<= 10;
-  result ^= (unsigned int)(next / 65536) % 1024;
-
-  next *= 1103515245;
-  next += 12345;
-  result <<= 10;
-  result ^= (unsigned int)(next / 65536) % 1024;
-
-  return result;
-}
-
-unsigned long randstate = 1;
-unsigned int
-rand()
-{
-  randstate = randstate * 1664525 + 1013904223;
-  return randstate;
-}
 // PAGEBREAK: 42
 //  Per-CPU process scheduler.
 //  Each CPU calls scheduler() after setting itself up.
@@ -472,79 +391,56 @@ void scheduler(void)
 #endif
 #ifdef MINE
 
-// Starts ptable.acc; Must be called with ptable.lock held.
-int tableStarter()
-{
-  int lastRunnable = -1;
-
-  int i;
-  for (i = 0; i < NPROC; i++)
-  {
-
-    if (ptable.proc[i].state != RUNNABLE)
-    {
-      ptable.acc[i] = -1;
-      continue;
-    }
-
-    if (lastRunnable == -1)
-      ptable.acc[i] = ptable.proc[i].noTickets;
-    else
-      ptable.acc[i] = ptable.acc[lastRunnable] + ptable.proc[i].noTickets;
-
-    lastRunnable = i;
-  }
-  return lastRunnable;
-}
 
 void scheduler(void)
 {
 
-  struct proc *p;
   struct cpu *c = mycpu();
+  struct proc *p;
   c->proc = 0;
 
   for (;;)
   {
+
+    p = NULL;
+
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    int seed = tableStarter();
-    // cprintf("SEED: %d\n", seed);
-    if (seed == -1)
+    for (int i = 0; i < NPROC; i++)
+    {
+
+      if(ptable.proc[i].state != RUNNABLE || ptable.proc[i].stepSize == -1) 
+        continue;
+      
+      if(p == NULL || ptable.proc[i].step < p->step)
+        p = &ptable.proc[i];  
+    }
+
+    if(p == NULL)
     {
       release(&ptable.lock);
       continue;
     }
+    
+    // cprintf("%d\n", p->pid);
+    
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
 
-    int drawn = rand() % ptable.acc[seed];
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
 
-    for (int i = 0; i < NPROC; i++)
-    {
-      // if (ptable.proc[i].state == SLEEPING)
-      //         cprintf("%d: %d\n", i, ptable.proc[i].state);
-      if (ptable.acc[i] == -1 || ptable.proc[i].state != RUNNABLE)
-        continue;
+    // Update step from process
+  
+    p->step += p->stepSize;
 
-      if (drawn < ptable.acc[i])
-      {
+    c->proc = 0;
 
-        p = &ptable.proc[i];
-        //  cprintf("the process that will run is %d. his tickets: %d\n", i, p->noTickets);
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
-    }
 
     release(&ptable.lock);
   }
