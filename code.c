@@ -12,6 +12,32 @@ Spected result: Process with most tickets finishes first, then second most, and 
 
 */
 
+void reverse(char *array, int start, int end)
+{
+    int temp;
+    while (start < end)
+    {
+        temp = array[start];
+        array[start] = array[end];
+        array[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+char *itoa(int value){
+    char *str = (char *)malloc(sizeof(char) * 11);
+    int i = 0;
+    while(value > 0){
+        str[i++] = (value % 10) + '0';
+        value /= 10;
+    }
+    str[i] = '\0';
+    reverse(str, 0, i - 1);
+    
+    return str;
+}
+
 int main(int argc, char *argv[])
 {
     int noTickets = 10;
@@ -23,14 +49,19 @@ int main(int argc, char *argv[])
     for (int i = 0; i < P; i++)
     {
         int pid = fork(noTickets);
-
+        
+        char *args[2];
+        args[0] = "bubble\0";
+        args[1] = itoa(noTickets);
+        
         if (pid == 0){
-            exec("bubble", argv);
+            
+            exec("bubble", args);
         }
         else if (i == P - 1)
             biggestPID = pid;
 
-        noTickets += 10;
+        noTickets += 100;
     }
     for (int i = 0; i < P; i++)
         wait();

@@ -52,6 +52,7 @@ void bubble(int *array)
 int main(int argc, char const *argv[])
 {
     
+    
     for (int i = 0; i < N; i++)
     {
         int array[SIZE];
@@ -59,6 +60,6 @@ int main(int argc, char const *argv[])
         bubble(array);
     }
     
-    printf(1, "BUBBLE WITH %d TICKETS FINISHED\n", atoi(argv[1]));
+    printf(1, "BUBBLE WITH %s TICKETS FINISHED\n", argv[1]);
     exit();
 }
